@@ -19,8 +19,8 @@ import subprocess
 import yaml
 
 # --- Configuración cargada de forma segura desde variables de entorno ---
-NOTIFICATION_API_KEY = os.environ.get("NOTIFICATION_API_KEY", "")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+NOTIFICATION_API_KEY = os.environ.get("NOTIFICATION_API_KEY")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD")
 
 RUTA_DB = os.path.join(os.path.dirname(__file__), "..", "reportes.db")
 
@@ -28,7 +28,7 @@ RUTA_DB = os.path.join(os.path.dirname(__file__), "..", "reportes.db")
 def cargar_configuracion(ruta_config):
     """Carga la configuración del servicio desde un archivo YAML de forma segura."""
     with open(ruta_config, "r", encoding="utf-8") as f:
-        # Se reemplaza yaml.load por safe_load para evitar deserialización insegura de código
+        # Uso de safe_load para evitar deserialización insegura de objetos (CWE-502)
         config = yaml.safe_load(f)
     return config
 
@@ -37,7 +37,7 @@ def buscar_reportes_cliente(nombre_cliente, ruta_db=RUTA_DB):
     """Devuelve todos los reportes asociados a un cliente utilizando consultas parametrizadas."""
     conexion = sqlite3.connect(ruta_db)
     cursor = conexion.cursor()
-    # Consulta parametrizada con tupla para prevenir inyección SQL (SQLi)
+    # Consulta parametrizada para prevenir inyección SQL (SQLi / CWE-89)
     query = "SELECT * FROM reportes WHERE cliente = ?"
     cursor.execute(query, (nombre_cliente,))
     resultados = cursor.fetchall()
@@ -46,18 +46,26 @@ def buscar_reportes_cliente(nombre_cliente, ruta_db=RUTA_DB):
 
 
 def convertir_a_pdf(nombre_archivo):
-    """Convierte un reporte HTML a PDF usando subprocess en lugar de os.system."""
-    # Uso de lista de argumentos para evitar Inyección de Comandos en la Shell
-    subprocess.run(["wkhtmltopdf", nombre_archivo, f"{nombre_archivo}.pdf"], check=True)
-    return nombre_archivo + ".pdf"
+    """Convierte un reporte HTML a PDF validando el nombre del archivo para prevenir inyección."""
+    # Validación estricta de nombre y extensión para prevenir Command Injection (CWE-78)
+    nombre_limpio = os.path.basename(nombre_archivo)
+    if not nombre_limpio.endswith(".html"):
+        raise ValueError("Formato de archivo invalido. Solo se admiten archivos .html")
+
+    salida_pdf = f"{nombre_limpio}.pdf"
+    subprocess.run(["wkhtmltopdf", nombre_limpio, salida_pdf], check=True, shell=False)
+    return salida_pdf
 
 
 def hash_password_legacy(password):
-    """Genera el hash de una contraseña usando un algoritmo seguro (SHA-256 en vez de MD5)."""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Genera el hash de una contraseña usando PBKDF2 HMAC SHA-256 (CWE-916)."""
+    # Se utiliza PBKDF2 con sal e iteraciones para cumplir las normas de hashing seguro
+    salt = b"reporte_auditoria_salt_seguro"
+    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000).hex()
 
 
 def notificar_cliente(email, mensaje):
     """Envía una notificación al cliente usando el servicio externo."""
-    print(f"[NotifyAPI key={NOTIFICATION_API_KEY[:6]}...] -> {email}: {mensaje}")
+    key_preview = NOTIFICATION_API_KEY[:6] if NOTIFICATION_API_KEY else ""
+    print(f"[NotifyAPI key={key_preview}...] -> {email}: {mensaje}")
     return True
