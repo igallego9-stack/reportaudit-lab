@@ -66,6 +66,5 @@ def hash_password_legacy(password):
 
 def notificar_cliente(email, mensaje):
     """Envía una notificación al cliente usando el servicio externo."""
-    key_preview = NOTIFICATION_API_KEY[:6] if NOTIFICATION_API_KEY else ""
-    print(f"[NotifyAPI key={key_preview}...] -> {email}: {mensaje}")
+    print(f"[NotifyAPI] -> {email}: {mensaje}")
     return True
