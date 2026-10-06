@@ -12,7 +12,6 @@ corregir. No uses este código como ejemplo de cómo hacer las cosas.
 """
 
 import hashlib
-import re
 import secrets
 import os
 import sqlite3
@@ -48,9 +47,10 @@ def buscar_reportes_cliente(nombre_cliente, ruta_db=RUTA_DB):
 
 
 def convertir_a_pdf(nombre_archivo):
-    """Convierte un reporte HTML a PDF validando el nombre con allowlist estricta."""
+    """Convierte un reporte HTML a PDF validando el nombre con allowlist estricta (sin regex)."""
     nombre_limpio = os.path.basename(nombre_archivo)
-    if not re.fullmatch(r"[A-Za-z0-9_-]+\.html", nombre_limpio):
+    base, ext = os.path.splitext(nombre_limpio)
+    if ext != ".html" or not base or any(not c.isalnum() and c not in "_-" for c in base):
         raise ValueError("Formato de archivo invalido. Solo .html con letras, numeros, _ o -")
     salida_pdf = f"{nombre_limpio}.pdf"
     subprocess.run(["wkhtmltopdf", nombre_limpio, salida_pdf], check=True, shell=False)
