@@ -12,6 +12,7 @@ corregir. No uses este código como ejemplo de cómo hacer las cosas.
 """
 
 import hashlib
+import secrets
 import os
 import sqlite3
 import subprocess
@@ -58,10 +59,10 @@ def convertir_a_pdf(nombre_archivo):
 
 
 def hash_password_legacy(password):
-    """Genera el hash de una contraseña usando PBKDF2 HMAC SHA-256 (CWE-916)."""
-    # Se utiliza PBKDF2 con sal e iteraciones para cumplir las normas de hashing seguro
-    salt = b"reporte_auditoria_salt_seguro"
-    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000).hex()
+    """Genera el hash de una contraseña usando PBKDF2 HMAC SHA-256 con sal aleatoria."""
+    salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 210000)
+    return f"{salt.hex()}${dk.hex()}"
 
 
 def notificar_cliente(email, mensaje):
