@@ -52,8 +52,8 @@ llegues a la parte correspondiente.
 | Dato | Valor |
 |---|---|
 | Dependencias directas (`requirements.in`) | 2 (`flask`, `pyyaml`) |
-| Componentes Python en el SBOM | 8 (`blinker 1.9.0, click 8.5.0, flask 3.0.0, itsdangerous 2.2.0, jinja2 3.1.6, markupsafe 3.0.4, pyyaml 6.0.3, werkzeug 3.1.9`) |
-| Otros componentes que aparezcan en el SBOM (si los hay) y de dónde salen | 4 `github-action` (`checkout v6, codeql init/analyze v4, sonarqube v7`) de `.github/workflows/cadena-suministro.yml` |
+| Componentes Python en el SBOM | 8 (`blinker 1.9.0, click 8.5.0, flask 3.1.3, itsdangerous 2.2.0, jinja2 3.1.6, markupsafe 3.0.4, pyyaml 6.0.3, werkzeug 3.1.9`) |
+| Otros componentes que aparezcan en el SBOM (si los hay) y de dónde salen | 4 `github-action` (`checkout v7, codeql init/analyze v4, sonarqube v8`) de `.github/workflows/cadena-suministro.yml` |
 | Formato y versión de especificación del SBOM (`bomFormat`, `specVersion`) | `CycloneDX 1.6` (`sbom.cyclonedx.json`) |
 
 ---
@@ -83,8 +83,8 @@ justificación.
 | Alertas abiertas de CodeQL (Security → Code scanning) |  |  |
 | Vulnerabilidades en SonarQube Cloud (rama main) |  |  |
 | Security Hotspots por revisar en SonarQube Cloud |  |  |
-| Vulnerabilidades de Grype sobre el SBOM | 23 (1 Critical, 4 High, 16 Medium, 2 Low) en `grype-antes.txt` | 1 Low (`GHSA-68rp-wp8r-4726` flask 3.0.0) en `grype-despues.txt` |  |
-| Alertas abiertas de Dependabot | 0 (escaneo inicial) | 0 |  |
+| Vulnerabilidades de Grype sobre el SBOM | 23 (1 Critical, 4 High, 16 Medium, 2 Low) en `grype-antes.txt` | 0 en `grype-despues.txt` tras PR #24 (flask 3.1.3) |  |
+| Alertas abiertas de Dependabot | 1 Low inicial (flask) + actions checkout v7 y sonar v8 | 0 (todas fusionadas: #22, #23, #24) |  |
 
 ---
 
@@ -110,9 +110,9 @@ justificación.
 | #3 | Adopt an international pull request template | PR #16 (abierto, checks verde, pendiente aprobacion) |
 | #4 | Run SAST (SonarQube Cloud and CodeQL) on every pull request | |
 | #5 | Block insecure commits with a Semgrep pre-commit hook | PR #17 (abierto, pendiente aprobacion) |
-| #6 | Enable Dependabot alerts and security updates | PR #18 (abierto, checks verde) |
+| #6 | Enable Dependabot alerts and security updates | PR #18 + Dependabot #22 (checkout v7), #23 (sonar v8), #24 (flask 3.1.3). CLOSED |
 | #7 | Remediate the findings of the security audit | |
-| #8 | Upgrade the vulnerable dependencies | PR #19 (abierto, Grype 23->1) |
+| #8 | Upgrade the vulnerable dependencies | PR #19 (jinja2/werkzeug, 23->1) + Dependabot #24 (flask 3.1.3, 1->0). CLOSED |
 | #9 | Publish the audit log and the before/after evidence | |
 | #10 | Detect ReportAudit credentials in the whole Git history | |
 | #11 | Make SCA and secret scanning required checks on main | |
