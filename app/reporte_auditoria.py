@@ -12,6 +12,7 @@ corregir. No uses este código como ejemplo de cómo hacer las cosas.
 """
 
 import hashlib
+import secrets
 import os
 import sqlite3
 import subprocess
@@ -46,22 +47,21 @@ def buscar_reportes_cliente(nombre_cliente, ruta_db=RUTA_DB):
 
 
 def convertir_a_pdf(nombre_archivo):
-    """Convierte un reporte HTML a PDF validando el nombre del archivo para prevenir inyección."""
-    # Validación estricta de nombre y extensión para prevenir Command Injection (CWE-78)
+    """Convierte un reporte HTML a PDF validando el nombre con allowlist estricta (sin regex)."""
     nombre_limpio = os.path.basename(nombre_archivo)
-    if not nombre_limpio.endswith(".html"):
-        raise ValueError("Formato de archivo invalido. Solo se admiten archivos .html")
-
+    base, ext = os.path.splitext(nombre_limpio)
+    if ext != ".html" or not base or any(not c.isalnum() and c not in "_-" for c in base):
+        raise ValueError("Formato de archivo invalido. Solo .html con letras, numeros, _ o -")
     salida_pdf = f"{nombre_limpio}.pdf"
     subprocess.run(["wkhtmltopdf", nombre_limpio, salida_pdf], check=True, shell=False)
     return salida_pdf
 
 
 def hash_password_legacy(password):
-    """Genera el hash de una contraseña usando PBKDF2 HMAC SHA-256 (CWE-916)."""
-    # Se utiliza PBKDF2 con sal e iteraciones para cumplir las normas de hashing seguro
-    salt = b"reporte_auditoria_salt_seguro"
-    return hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 100000).hex()
+    """Genera el hash de una contraseña usando PBKDF2 HMAC SHA-256 con sal aleatoria."""
+    salt = secrets.token_bytes(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt, 210000)
+    return f"{salt.hex()}${dk.hex()}"
 
 
 def notificar_cliente(email, mensaje):
