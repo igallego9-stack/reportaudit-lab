@@ -69,9 +69,11 @@ llegues a la parte correspondiente.
 **Comparación con Dependabot** (Parte H): ¿las alertas coinciden con Grype? Explica
 cualquier diferencia.
 
-**Documento VEX:** copia `plantillas/reportaudit.openvex.json` a
-`docs/evidencias/`, rellénalo, enlázalo aquí y resume en una frase la
-justificación.
+**Documento VEX:** [`docs/evidencias/reportaudit.openvex.json`](evidencias/reportaudit.openvex.json)
+(GHSA-ffc3-869f-jxw9, `pkg:pypi/pyjwt@2.9.0`, `not_affected`,
+`vulnerable_code_not_in_execute_path`). Justificación: PyJWT no es dependencia de
+ReportAudit (`requirements.in` solo declara flask y pyyaml) y ningún módulo de
+`app/` importa `jwt` (`servicio.py:12-20`, `reporte_auditoria.py:14-20`).
 
 ---
 
@@ -90,18 +92,19 @@ justificación.
 
 ## Preguntas de comprobación (Sección 7 de la guía)
 
-1.
-2.
-3.
-4.
-5.
-6.
-7.
-8.
-9.
-10.
-11.
-12.
+1. **Windows, Ubuntu y GitHub.** En Windows viven VS Code (solo la interfaz), el navegador y el PDF de la guía. En Ubuntu (WSL2) viven el proyecto (`~/reportaudit-lab`), Python, Git, `gh`, las herramientas de `tools/` y la terminal donde se ejecuta todo. En GitHub viven el repositorio remoto, el pipeline, los Issues y PRs, la protección de main y las Releases. Se trabaja en Ubuntu porque las herramientas (Syft, Grype, Trivy, Gitleaks) son binarios de Linux y porque el sistema de archivos de Linux es mucho más rápido que `/mnt/c`.
+2. **Directa y transitiva.** Directa es la que declaro yo en `requirements.in` (`flask`, `pyyaml`). Transitiva es la que llega porque otra la necesita: `werkzeug` y `jinja2` entran por `flask` (`# via flask` en `requirements.txt`). En el SBOM hay 8 paquetes Python frente a 2 directas: es el efecto iceberg. Muchas vulnerabilidades estaban en transitivas (werkzeug, jinja2).
+3. **Source y sink.** Source es el punto por donde entra un dato que controla el usuario; sink, la operación peligrosa a la que llega. Ejemplo: `request.args.get("cliente")` en `app/servicio.py` (source) llega a `buscar_reportes_cliente`, que construía la consulta SQL y la pasaba a `cursor.execute` en `app/reporte_auditoria.py` (sink).
+4. **o'brien_ltd.** La comilla simple del nombre cerraba la cadena del SQL concatenado y dejaba el resto de la consulta mal formada, y la consulta fallaba. Que un dato de entrada altere la estructura de la sentencia demuestra que se interpretaba como código SQL, es decir, una inyección.
+5. **Semgrep.** El hook actúa en local, antes del commit, y bloquea el código inseguro antes de que salga de mi equipo; SonarQube Cloud y CodeQL actúan después, en el PR. El hook solo no basta porque se puede saltar (`--no-verify`) o no instalar, y no analiza el repositorio remoto ni las dependencias.
+6. **Herramientas distintas.** No es un error: cada una tiene reglas, modelos y alcance distintos. En mi matriz, CodeQL detectó 4 de 6, Semgrep solo H3 y H4, y Trivy se centra en SCA y secretos con formato conocido. Ninguna lo detecta todo, por eso se combinan (defensa en profundidad).
+7. **PR de código y PR de Dependabot.** Son problemas distintos: el PR de código corrige el código propio (SAST), no las versiones de las librerías; y el de Dependabot sube versiones (SCA) pero no toca mi código. Cada alerta se cierra donde vive su causa.
+8. **Borrar y corregir.** Borrar el secreto del código no lo quita del historial de Git, ni de clones ni forks. Corregir de verdad es rotar la credencial en el servicio real (la antigua deja de valer) y sacarla a una variable de entorno. Gitleaks sigue encontrando las antiguas en el commit de importación.
+9. **VEX.** Ignorar una alerta no deja constancia; un VEX documenta quién, cuándo y con qué argumento se decidió. Mi VEX declara que GHSA-ffc3-869f-jxw9 (PyJWT 2.9.0) está `not_affected` porque PyJWT no es dependencia de ReportAudit ni ningún módulo de `app/` importa `jwt`.
+10. **Instalador de herramientas.** Descarga una versión fijada y compara la huella SHA-256 con la publicada antes de instalar. No garantiza que la publicación oficial no esté comprometida: en el caso Trivy de 2026 la huella publicada también era la del binario malicioso. Por eso se fijan versiones revisadas y, en entornos exigentes, se verifica la firma.
+11. **Gitleaks.** El código actual no tiene credenciales (están en variables de entorno), pero el commit de importación `9e332fc` sigue en el historial. Lo que cierra el riesgo es rotar las credenciales (Parte M); borrar la línea no basta. La baseline en `.gitleaksignore` registra esos dos hallazgos concretos sin desactivar la regla.
+12. **Ratchet.** pip-audit no se exigió en la Parte G porque había dependencias vulnerables y habría bloqueado todos los PRs. Se corrigió primero (Parte M) y se hizo obligatorio después (Parte P), de modo que ya no se puede retroceder: el PR #30, con jinja2 3.1.4, fue rechazado por el check.
+13. **Dependabot y pip-audit.** Dependabot avisa y propone un PR, pero no impide fusionar nada; `SCA - pip-audit` es un check obligatorio de main y bloquea cualquier PR que introduzca una dependencia vulnerable.
 
 ## Backlog del laboratorio (Issues)
 
@@ -120,3 +123,100 @@ justificación.
 | #13 | Release v1.0.0 with an SBOM and signed provenance | |
 | #14 | Measure supply-chain maturity with OpenSSF Scorecard | |
 | #15 | Build the CRA evidence index | |
+
+---
+
+## Bloque final -- Publicar y demostrar (Partes O-T)
+
+### O. Secretos en el historial (Gitleaks)
+
+| Escaneo | Comando | N.º de hallazgos | Commit(s) donde aparecen |
+|---|---|---|---|
+| Código actual, reglas por defecto | `gitleaks dir app` | 0 | — |
+| Historial, reglas por defecto | `gitleaks git .` | 1 (`generic-api-key`, `app/reporte_auditoria.py:21`; solo NOTIFICATION_API_KEY) | 9e332fc (importación, Parte A) |
+| Historial, con regla propia | `gitleaks git . -c .gitleaks.toml` | 2 (`reportaudit-hardcoded-credential`, líneas 21 y 22) | 9e332fc |
+| Historial, tras .gitleaksignore | `gitleaks git . -c .gitleaks.toml` | 0 (`no leaks found`; `dir app` también 0) | — |
+
+**¿Por qué el código actual está limpio y el historial no?** En la Parte M las credenciales pasaron a
+variables de entorno, así que los archivos de hoy no las contienen. Pero el commit de importación (9e332fc)
+sigue en GitHub, en cada clon y en cada fork, y `git log -p` lo muestra. Las reglas por defecto solo
+reconocieron una de las dos (el formato no es el de ningún proveedor); la regla propia encontró las dos.
+
+**¿Qué medida cierra el riesgo?** Rotar las credenciales en el servicio real (Parte M): lo que está en el
+historial deja de servir. Borrar la línea del código no lo cierra, porque el historial conserva el valor.
+
+**`.gitleaksignore` frente a desactivar la regla:** cada línea apunta a un hallazgo concreto (commit, archivo,
+regla y línea) con su motivo, y un secreto nuevo, aunque sea en el mismo archivo, sigue haciendo fallar el
+análisis. Desactivar la regla dejaría de vigilar todo. Los valores nunca aparecen en la evidencia (`--redact`).
+
+### P. Puertas obligatorias en main
+
+| Check | ¿Exigido en main? | Resultado en el PR de prueba (test/puerta-sca) |
+|---|---|---|
+| SAST - SonarQube Cloud | Sí | Verde (el código no cambió) |
+| SAST - CodeQL | Sí | Verde |
+| SCA - pip-audit | Sí (añadido en P.4) | **Rojo**: jinja2 3.1.4 con PYSEC-2026-1471, -1472 y -1475 (corregidas en 3.1.5/3.1.6). Evidencia: `docs/evidencias/pip-audit-puerta-sca.txt` |
+| Secretos - Gitleaks | Sí (añadido en P.4) | Verde |
+
+Notas: el PR de prueba fue el draft #30, cerrado sin fusionar y con la rama borrada. Un primer intento (#29,
+werkzeug 3.0.1) también dio rojo, pero por un conflicto de resolución con Flask 3.1.3 y no por una
+vulnerabilidad, así que lo repetí con jinja2. Secret scanning y push protection ya estaban en *Enabled*.
+Los PRs #26, #27 y #28 se fusionaron con `gh pr merge --admin` por no haber revisor disponible.
+
+**Dependabot frente a pip-audit:** Dependabot avisa y propone un PR, pero no impide fusionar; pip-audit como
+check obligatorio hace que un PR con una dependencia vulnerable no pueda entrar en main.
+**¿Por qué no se exigió desde la Parte G?** Porque el código tenía dependencias vulnerables hasta la Parte M:
+exigirlo antes habría bloqueado todos los PRs. Es un trinquete: primero se limpia y luego se prohíbe retroceder.
+
+### Q. Divulgación coordinada (simulacro)
+
+- Informe recibido de (usuario de GitHub):
+- Identificador del borrador de aviso (GHSA-...):
+- Severidad y vector CVSS:
+- CWE:
+- Versiones afectadas / versión corregida:
+
+### R. Versión 1.0.0 verificable
+
+| Comprobación | Comando | Resultado |
+|---|---|---|
+| Huellas SHA-256 | `sha256sum -c SHA256SUMS` | OK para `reportaudit-1.0.0.tar.gz` y `reportaudit-sbom.cdx.json` |
+| Procedencia (SLSA) | `gh attestation verify reportaudit-1.0.0.tar.gz --repo igallego9-stack/reportaudit-lab` | Correcta (exit 0): predicado `slsa.dev/provenance/v1`, workflow `publicar-version.yml@refs/tags/v1.0.0` |
+| SBOM atestado | `gh attestation verify ... --predicate-type https://cyclonedx.org/bom` | Correcta (exit 0): predicado `cyclonedx.org/bom`, mismo workflow y etiqueta |
+| Archivo alterado | `gh attestation verify alterado.tar.gz --repo ...` | **Falla** (exit 1, HTTP 404: no hay atestación para esa huella). Huella `9a9030b4…` frente a `863eafaf…` del original |
+
+Notas: el `gh` 2.45.0 de Ubuntu no incluye `attestation`; verifiqué con gh 2.105.0 instalado en `~/gh-verif`
+(SHA-256 comprobado), fuera del repositorio. Con `--format json` se ve el detalle del certificado.
+
+**¿Qué ataque detecta cada comprobación?** Las huellas, una descarga corrupta o incompleta; no detectan que
+alguien cambie archivo y `SHA256SUMS` a la vez. La procedencia detecta un archivo no construido por mi workflow
+desde esta etiqueta, aunque el atacante cambie las huellas. El SBOM atestado demuestra que ese inventario
+describe exactamente ese paquete. Ninguna detecta un workflow comprometido que firme código malicioso, ni que
+el código en sí sea inseguro (eso lo cubren los checks de cada PR y la revisión).
+
+### S. Madurez (OpenSSF Scorecard)
+
+| Check | Puntuación (0-10) | Qué la explica |
+|---|---|---|
+| Puntuación global | 6.6 | Calculada el 2026-11-24 sobre `main` tras fusionar el PR #33 |
+| Pinned-Dependencies | 0 | Las acciones de los workflows usan etiquetas (`@v7`), no hashes de commit. Es el reto S.3 |
+| Maintained | 0 | El repositorio tiene menos de 90 días: refleja que es nuevo, no que sea inseguro |
+| Code-Review | 4 | Solo 6 de 13 changesets aprobados por otra persona: los PRs #26-#28, #31-#33 se fusionaron con `--admin` por no haber revisor |
+| License | 0 | No hay archivo de licencia en el repositorio |
+| Contributors | 0 | Sin contribuidores de organizaciones distintas (un solo autor) |
+
+Otros: CII-Best-Practices 0 y Fuzzing 0 (no se persiguen); Branch-Protection sin datos (-1, el token no puede
+leer las reglas clásicas, como anticipa la guía). Signed-Releases 8: reconoce 1 artefacto firmado de la Release.
+Con 10: Security-Policy, Dependency-Update-Tool, Token-Permissions, SAST, Vulnerabilities, Dangerous-Workflow,
+Binary-Artifacts y CI-Tests.
+
+**Punto de control:** el más útil para elegir una dependencia es Vulnerabilities (y Signed-Releases/Token-
+Permissions por la cadena de suministro); el más engañoso sin contexto es Maintained, que penaliza a un proyecto
+nuevo, y Code-Review, que aquí baja por una circunstancia del laboratorio y no por el código.
+
+### T. Expediente de evidencias
+
+Ver `docs/cra/expediente-evidencias.md`.
+
+Compara el expediente con tu respuesta B5 de la Práctica 2: ¿qué evidencia imaginaste que ahora
+existe de verdad, y cuál sigue sin existir?
