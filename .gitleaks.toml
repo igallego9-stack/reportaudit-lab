@@ -1,0 +1,11 @@
+title = "ReportAudit secret rules"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "reportaudit-hardcoded-credential"
+description = "ReportAudit credential written in the source code"
+regex = '''(?i)(?:NOTIFICATION_API_KEY|SMTP_PASSWORD)\s*=\s*["']([^"'\r\n]{6,})["']'''
+secretGroup = 1
+keywords = ["notification_api_key", "smtp_password"]
