@@ -1,0 +1,4 @@
+# SCA - pip-audit on draft PR #30 (test/puerta-sca, jinja2==3.1.4): gate FAILED as expected
+[jinja2] | 3.1.4 | [PYSEC-2026-1471] | 3.1.6 | An oversight in how the Jinja sandboxed environment interacts with the `|attr` filter allows an attacker that con
+[jinja2] | 3.1.4 | [PYSEC-2026-1472] | 3.1.5 | A bug in the Jinja compiler allows an attacker that controls both the content and filename of a template to execu
+[jinja2] | 3.1.4 | [PYSEC-2026-1475] | 3.1.5 | An oversight in how the Jinja sandboxed environment detects calls to `str.format` allows an attacker that control
