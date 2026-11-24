@@ -170,11 +170,11 @@ exigirlo antes habría bloqueado todos los PRs. Es un trinquete: primero se limp
 
 ### Q. Divulgación coordinada (simulacro)
 
-- Informe recibido de (usuario de GitHub):
-- Identificador del borrador de aviso (GHSA-...):
-- Severidad y vector CVSS:
-- CWE:
-- Versiones afectadas / versión corregida:
+- Informe recibido de (usuario de GitHub): **ninguno**. No hubo investigador externo: el simulacro se hizo en solitario porque no hay compañero. El borrador lo creó directamente el responsable (`igallego9-stack`), sin pasar por el estado *Triage* de un informe recibido; por eso no hay crédito a un investigador.
+- Identificador del borrador de aviso (GHSA-...): GHSA-6w2f-x63v-f8f2 (estado `draft`, privado; no se solicitó CVE ni se publicó)
+- Severidad y vector CVSS: High, 7.5 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N`
+- CWE: CWE-89 (SQL Injection)
+- Versiones afectadas / versión corregida: `< 1.0.0` / `1.0.0` (ecosistema pip, paquete `reportaudit`)
 
 ### R. Versión 1.0.0 verificable
 
