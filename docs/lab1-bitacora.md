@@ -82,9 +82,9 @@ ReportAudit (`requirements.in` solo declara flask y pyyaml) y ningún módulo de
 | Medida | Antes | Después |
 |---|---|---|
 | Hallazgos de Semgrep en `app/` | 1 blocking en prueba H.3 (`avoid-pyyaml-load`) | 0 (`Passed` en codigo corregido) |  |
-| Alertas abiertas de CodeQL (Security → Code scanning) |  |  |
-| Vulnerabilidades en SonarQube Cloud (rama main) |  |  |
-| Security Hotspots por revisar en SonarQube Cloud |  |  |
+| Alertas abiertas de CodeQL (Security → Code scanning) | 4 (#1 clear-text logging, #2 sql-injection, #3 command-line-injection, #4 weak hashing) | 0 abiertas (las 4 en estado fixed) |
+| Vulnerabilidades en SonarQube Cloud (rama main) | Varias (inyección SQL, de comandos, YAML, MD5 y secretos, ver matriz de detección) | 2 abiertas el 2026-11-24: `pythonsecurity:S6350` (argumento de comandos en `convertir_a_pdf`; el PR #36 rechaza nombres que empiezan por `-`, pero SonarQube sigue marcándolo porque no reconoce la validación como saneamiento) y `python:S4502` (CSRF, falso positivo: solo hay endpoints GET). Ambas pendientes de marcar como aceptadas en SonarQube Cloud |
+| Security Hotspots por revisar en SonarQube Cloud | Varios (credenciales en el código) | 0 por revisar (100 % revisados) |
 | Vulnerabilidades de Grype sobre el SBOM | 23 (1 Critical, 4 High, 16 Medium, 2 Low) en `grype-antes.txt` | 0 en `grype-despues.txt` tras PR #24 (flask 3.1.3) |  |
 | Alertas abiertas de Dependabot | 1 Low inicial (flask) + actions checkout v7 y sonar v8 | 0 (todas fusionadas: #22, #23, #24) |  |
 
@@ -170,8 +170,8 @@ exigirlo antes habría bloqueado todos los PRs. Es un trinquete: primero se limp
 
 ### Q. Divulgación coordinada (simulacro)
 
-- Informe recibido de (usuario de GitHub): **ninguno**. No hubo investigador externo: el simulacro se hizo en solitario porque no hay compañero. El borrador lo creó directamente el responsable (`igallego9-stack`), sin pasar por el estado *Triage* de un informe recibido; por eso no hay crédito a un investigador.
-- Identificador del borrador de aviso (GHSA-...): GHSA-6w2f-x63v-f8f2 (estado `draft`, privado; no se solicitó CVE ni se publicó)
+- Informe recibido de (usuario de GitHub): **Carlos-PC05**, que lo envió por el canal privado. Pasó por *Triage* y lo acepté como borrador; figura como *reporter* en los créditos.
+- Identificador del borrador de aviso (GHSA-...): GHSA-g7w5-64wq-2j65 (estado `draft`, privado; no se solicitó CVE ni se publicó). Antes hice un primer borrador en solitario, GHSA-6w2f-x63v-f8f2, que cerré por duplicado.
 - Severidad y vector CVSS: High, 7.5 — `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N`
 - CWE: CWE-89 (SQL Injection)
 - Versiones afectadas / versión corregida: `< 1.0.0` / `1.0.0` (ecosistema pip, paquete `reportaudit`)
