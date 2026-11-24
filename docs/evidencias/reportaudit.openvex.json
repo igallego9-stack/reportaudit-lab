@@ -1,16 +1,16 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/TU-USUARIO/reportaudit-lab/vex/2026-001",
+  "@id": "https://github.com/igallego9-stack/reportaudit-lab/vex/2026-001",
   "author": "Israel Gallego igallego9@alu.ucam.edu",
-  "timestamp": "2026-10-01T10:00:00Z",
+  "timestamp": "2026-11-24T12:00:00Z",
   "version": 1,
   "statements": [
     {
-      "vulnerability": { "name": "CVE-XXXX-XXXXX" },
-      "products": [ { "@id": "pkg:pypi/paquete@version" } ],
+      "vulnerability": { "name": "GHSA-ffc3-869f-jxw9" },
+      "products": [ { "@id": "pkg:pypi/pyjwt@2.9.0" } ],
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "Explica aquí, con evidencia del código, por qué la vulnerabilidad no es explotable en ReportAudit."
+      "impact_statement": "PyJWT 2.9.0 appeared in the pre-fix lockfile (requirements.txt) but is not a dependency of ReportAudit: requirements.in only declares flask and pyyaml, and no module of app/ imports jwt (app/servicio.py:12-20 imports only pathlib, flask and reporte_auditoria; app/reporte_auditoria.py:14-20 imports hashlib, secrets, os, sqlite3, subprocess and yaml). The service authenticates nobody with tokens, so no code path can reach the vulnerable PyJWT functions. The component was removed from the lockfile in PR #19, and the post-fix Grype scan (docs/evidencias/grype-despues.txt) reports no vulnerabilities."
     }
   ]
 }
